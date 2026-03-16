@@ -81,6 +81,9 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
 
+      - name: Mark Copilot session
+        run: echo "COPILOT_CODING_AGENT=true" >> "$GITHUB_ENV"
+
       - name: Smoke test feature suite (MySQL + Redis)
         env:
           APP_KEY: base64:i3g6f+dV8FfsIkcxqd7gbiPn2oXk5r00sTmdD6V5utI=
