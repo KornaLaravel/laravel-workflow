@@ -17,12 +17,10 @@ abstract class TestCase extends BaseTestCase
 
     public static function setUpBeforeClass(): void
     {
-        if (getenv('GITHUB_ACTIONS') !== 'true' || getenv('COPILOT_CODING_AGENT') === 'true') {
-            if (TestSuiteSubscriber::getCurrentSuite() === 'feature') {
-                Dotenv::createImmutable(__DIR__, '.env.feature')->safeLoad();
-            } elseif (TestSuiteSubscriber::getCurrentSuite() === 'unit') {
-                Dotenv::createImmutable(__DIR__, '.env.unit')->safeLoad();
-            }
+        if (TestSuiteSubscriber::getCurrentSuite() === 'feature') {
+            Dotenv::createImmutable(__DIR__, '.env.feature')->safeLoad();
+        } elseif (TestSuiteSubscriber::getCurrentSuite() === 'unit') {
+            Dotenv::createImmutable(__DIR__, '.env.unit')->safeLoad();
         }
 
         foreach ($_ENV as $key => $value) {
@@ -59,12 +57,10 @@ abstract class TestCase extends BaseTestCase
 
     protected function setUp(): void
     {
-        if (getenv('GITHUB_ACTIONS') !== 'true') {
-            if (TestSuiteSubscriber::getCurrentSuite() === 'feature') {
-                Dotenv::createImmutable(__DIR__, '.env.feature')->safeLoad();
-            } elseif (TestSuiteSubscriber::getCurrentSuite() === 'unit') {
-                Dotenv::createImmutable(__DIR__, '.env.unit')->safeLoad();
-            }
+        if (TestSuiteSubscriber::getCurrentSuite() === 'feature') {
+            Dotenv::createImmutable(__DIR__, '.env.feature')->safeLoad();
+        } elseif (TestSuiteSubscriber::getCurrentSuite() === 'unit') {
+            Dotenv::createImmutable(__DIR__, '.env.unit')->safeLoad();
         }
 
         parent::setUp();

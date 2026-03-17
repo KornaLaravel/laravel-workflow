@@ -81,8 +81,14 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
 
-      - name: Mark Copilot session
-        run: echo "COPILOT_CODING_AGENT=true" >> "$GITHUB_ENV"
+      - name: Export GitHub Actions test defaults
+        run: |
+          echo "APP_KEY=base64:i3g6f+dV8FfsIkcxqd7gbiPn2oXk5r00sTmdD6V5utI=" >> "$GITHUB_ENV"
+          echo "DB_HOST=127.0.0.1" >> "$GITHUB_ENV"
+          echo "DB_DATABASE=testbench" >> "$GITHUB_ENV"
+          echo "DB_USERNAME=root" >> "$GITHUB_ENV"
+          echo "DB_PASSWORD=password" >> "$GITHUB_ENV"
+          echo "REDIS_HOST=127.0.0.1" >> "$GITHUB_ENV"
 
       - name: Smoke test feature suite (MySQL + Redis)
         env:
