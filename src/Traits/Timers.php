@@ -41,6 +41,12 @@ trait Timers
             $when = self::$context->now->copy()
                 ->addSeconds($seconds);
 
+            if (self::isProbing()) {
+                self::markProbePendingBeforeMatch();
+                ++self::$context->index;
+                return (new Deferred())->promise();
+            }
+
             if (! self::$context->replaying) {
                 $timer = self::$context->storedWorkflow->createTimer([
                     'index' => self::$context->index,
@@ -48,8 +54,7 @@ trait Timers
                 ]);
             } else {
                 ++self::$context->index;
-                $deferred = new Deferred();
-                return $deferred->promise();
+                return (new Deferred())->promise();
             }
         }
 
@@ -94,8 +99,11 @@ trait Timers
             )->delay($delay);
         }
 
+        if (self::isProbing()) {
+            self::markProbePendingBeforeMatch();
+        }
+
         ++self::$context->index;
-        $deferred = new Deferred();
-        return $deferred->promise();
+        return (new Deferred())->promise();
     }
 }

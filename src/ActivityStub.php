@@ -28,32 +28,66 @@ final class ActivityStub
     public static function make($activity, ...$arguments): PromiseInterface
     {
         $context = WorkflowStub::getContext();
+        $result = null;
 
-        $log = $context->storedWorkflow->findLogByIndex($context->index);
+        while (true) {
+            $log = $context->storedWorkflow->findLogByIndex($context->index);
+            $result = null;
 
-        if (WorkflowStub::faked()) {
-            $mocks = WorkflowStub::mocks();
+            if (WorkflowStub::faked()) {
+                $mocks = WorkflowStub::mocks();
 
-            if (! $log && array_key_exists($activity, $mocks)) {
-                $result = $mocks[$activity];
+                if (! $log && array_key_exists($activity, $mocks)) {
+                    $mockedResult = $mocks[$activity];
 
-                $log = $context->storedWorkflow->createLog([
-                    'index' => $context->index,
-                    'now' => $context->now,
-                    'class' => $activity,
-                    'result' => Serializer::serialize(
-                        is_callable($result) ? $result($context, ...$arguments) : $result
-                    ),
-                ]);
+                    $log = $context->storedWorkflow->createLog([
+                        'index' => $context->index,
+                        'now' => $context->now,
+                        'class' => $activity,
+                        'result' => Serializer::serialize(
+                            is_callable($mockedResult) ? $mockedResult($context, ...$arguments) : $mockedResult
+                        ),
+                    ]);
 
-                WorkflowStub::recordDispatched($activity, $arguments);
+                    WorkflowStub::recordDispatched($activity, $arguments);
+                }
             }
+
+            if (! $log) {
+                break;
+            }
+
+            if ($log->class !== Exception::class) {
+                break;
+            }
+
+            $result = Serializer::unserialize($log->result);
+
+            if (! self::isForeignExceptionResult($result, $activity)) {
+                break;
+            }
+
+            ++$context->index;
+            WorkflowStub::setContext($context);
         }
 
         if ($log) {
+            $result ??= Serializer::unserialize($log->result);
+
+            if (
+                WorkflowStub::isProbing()
+                && WorkflowStub::probeIndex() === $context->index
+                && (
+                    WorkflowStub::probeClass() === null
+                    || WorkflowStub::probeClass() === $activity
+                )
+                && $log->class === Exception::class
+            ) {
+                WorkflowStub::markProbeMatched();
+            }
+
             ++$context->index;
             WorkflowStub::setContext($context);
-            $result = Serializer::unserialize($log->result);
             if (
                 is_array($result) &&
                 array_key_exists('class', $result) &&
@@ -74,11 +108,25 @@ final class ActivityStub
             return resolve($result);
         }
 
+        if (WorkflowStub::isProbing()) {
+            WorkflowStub::markProbePendingBeforeMatch();
+            ++$context->index;
+            WorkflowStub::setContext($context);
+            return (new Deferred())->promise();
+        }
+
         $activity::dispatch($context->index, $context->now, $context->storedWorkflow, ...$arguments);
 
         ++$context->index;
         WorkflowStub::setContext($context);
-        $deferred = new Deferred();
-        return $deferred->promise();
+        return (new Deferred())->promise();
+    }
+
+    private static function isForeignExceptionResult(mixed $result, string $activity): bool
+    {
+        return is_array($result)
+            && isset($result['sourceClass'])
+            && is_string($result['sourceClass'])
+            && $result['sourceClass'] !== $activity;
     }
 }

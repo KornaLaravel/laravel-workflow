@@ -22,6 +22,12 @@ trait Awaits
             return resolve(Serializer::unserialize($log->result));
         }
 
+        if (self::isProbing()) {
+            self::markProbePendingBeforeMatch();
+            ++self::$context->index;
+            return (new Deferred())->promise();
+        }
+
         $result = $condition();
 
         if ($result === true) {
@@ -49,7 +55,6 @@ trait Awaits
         }
 
         ++self::$context->index;
-        $deferred = new Deferred();
-        return $deferred->promise();
+        return (new Deferred())->promise();
     }
 }
